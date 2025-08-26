@@ -1,0 +1,110 @@
+# land_use_land_cover_change_detection.py
+"""
+Land-Use Land-Cover Change Detection using NDVI (Synthetic Data)
+
+This script simulates NDVI values for two different time periods, 
+classifies land cover types, and detects changes.
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# -------------------------
+# Step 1: Generate synthetic NDVI data
+# -------------------------
+np.random.seed(42)
+n_points = 150  # >100 as requested
+
+# Simulate coordinates
+x = np.random.uniform(0, 100, n_points)
+y = np.random.uniform(0, 100, n_points)
+
+# NDVI ranges: Water <0.1, Urban 0.1-0.3, Agriculture 0.3-0.6, Forest >0.6
+ndvi_t1 = np.random.choice([np.random.uniform(-0.1, 0.1),   # water
+                            np.random.uniform(0.1, 0.3),   # urban
+                            np.random.uniform(0.3, 0.6),   # agriculture
+                            np.random.uniform(0.6, 0.9)],  # forest
+                            size=n_points)
+
+# Introduce change in NDVI for time2
+change = np.random.normal(0, 0.1, n_points)
+ndvi_t2 = ndvi_t1 + change
+ndvi_t2 = np.clip(ndvi_t2, -0.1, 0.9)  # keep within NDVI limits
+
+# -------------------------
+# Step 2: Land Cover Classification
+# -------------------------
+def classify_ndvi(value):
+    if value < 0.1:
+        return "Water"
+    elif 0.1 <= value < 0.3:
+        return "Urban"
+    elif 0.3 <= value < 0.6:
+        return "Agriculture"
+    else:
+        return "Forest"
+
+landcover_t1 = [classify_ndvi(val) for val in ndvi_t1]
+landcover_t2 = [classify_ndvi(val) for val in ndvi_t2]
+
+# -------------------------
+# Step 3: Detect Land Use Change
+# -------------------------
+change_detected = ["Changed" if landcover_t1[i] != landcover_t2[i] else "No Change"
+                   for i in range(n_points)]
+
+# Build dataframe
+df = pd.DataFrame({
+    "X": x,
+    "Y": y,
+    "NDVI_T1": ndvi_t1,
+    "NDVI_T2": ndvi_t2,
+    "LandCover_T1": landcover_t1,
+    "LandCover_T2": landcover_t2,
+    "Change": change_detected
+})
+
+print("Sample Data:")
+print(df.head())
+
+# -------------------------
+# Step 4: Visualization
+# -------------------------
+# NDVI distribution comparison
+plt.figure(figsize=(8,5))
+sns.kdeplot(df["NDVI_T1"], label="NDVI Time 1", fill=True)
+sns.kdeplot(df["NDVI_T2"], label="NDVI Time 2", fill=True)
+plt.title("NDVI Distribution Over Time")
+plt.xlabel("NDVI")
+plt.ylabel("Density")
+plt.legend()
+plt.show()
+
+# Scatter plot of changes
+plt.figure(figsize=(8,6))
+sns.scatterplot(data=df, x="X", y="Y", hue="Change", style="LandCover_T2", s=80)
+plt.title("Land Use Land Cover Change Detection (Synthetic)")
+plt.xlabel("X Coordinate")
+plt.ylabel("Y Coordinate")
+plt.legend(bbox_to_anchor=(1.05,1), loc="upper left")
+plt.show()
+
+# -------------------------
+# Step 5: Summary Statistics
+# -------------------------
+change_summary = df["Change"].value_counts()
+landcover_summary_t1 = df["LandCover_T1"].value_counts()
+landcover_summary_t2 = df["LandCover_T2"].value_counts()
+
+print("\n--- Change Summary ---")
+print(change_summary)
+print("\n--- Land Cover Distribution (Time 1) ---")
+print(landcover_summary_t1)
+print("\n--- Land Cover Distribution (Time 2) ---")
+print(landcover_summary_t2)
+
+# Save dataset
+df.to_excel("synthetic_land_use_land_cover_ndvi.xlsx", index=False)
+print("\nSynthetic dataset saved as 'synthetic_land_use_land_cover_ndvi.xlsx'")
